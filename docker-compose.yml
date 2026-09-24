@@ -1,0 +1,19 @@
+# docker-compose.yml
+# Declares the services (containers) this project needs to run.
+# Right now we only need one: a Postgres database.
+
+services:
+  db:                              # the name we'll use to refer to this container
+    image: postgres:16             # pull the official Postgres image, version 16, from Docker Hub
+    restart: unless-stopped        # auto-restart the container if it crashes, unless we stopped it ourselves
+    environment:
+      POSTGRES_USER: scoutpulse        # username for connecting to the DB
+      POSTGRES_PASSWORD: scoutpulse_dev # password (fine as plaintext for LOCAL dev only — never in production)
+      POSTGRES_DB: scoutpulse          # the database name that gets auto-created on first boot
+    ports:
+      - "5432:5432"               # map container's port 5432 to your laptop's port 5432 (Postgres's default port)
+    volumes:
+      - pgdata:/var/lib/postgresql/data   # persist DB data outside the container so it survives restarts
+
+volumes:
+  pgdata:    # named volume Docker manages for us — this is where the actual DB files live on disk
