@@ -81,3 +81,42 @@ async def player_event_counts(player_id: int) -> dict[str, int]:
     )
 
     return dict(zip(counts["event_type"], counts["count"]))
+
+
+async def fetch_team_matches_df(team: str) -> pl.DataFrame:
+    """
+    One team's season from its own perspective: goals for/against,
+    W/D/L and points per match. SQL reshapes each row (CASE + CTEs);
+    Polars does the cross-row maths afterwards.
+    """
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            WITH team_matches AS (
+                SELECT match_date,
+                       CASE WHEN home_team = $1 THEN home_score ELSE away_score END AS goals_for,
+                       CASE WHEN away_team = $1 THEN home_score ELSE away_score END AS goals_against
+                FROM matches
+                WHERE home_team = $1 OR away_team = $1
+            ), match_status AS (
+                SELECT *,
+                       CASE
+                           WHEN goals_for > goals_against THEN 'W'
+                           WHEN goals_for = goals_against THEN 'D'
+                           ELSE 'L'
+                       END AS result
+                FROM team_matches
+            )
+            SELECT *,
+                   CASE WHEN result = 'W' THEN 3
+                        WHEN result = 'D' THEN 1
+                        ELSE 0
+                   END AS points
+            FROM match_status
+            ORDER BY match_date
+            """,
+            team,
+        )
+
+    return pl.DataFrame([dict(row) for row in rows])
