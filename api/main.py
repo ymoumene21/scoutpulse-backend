@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Query, HTTPException
 from pydantic import BaseModel
 
-from api.db import player_exists
-from processing.metrics import rolling_avg_rating, player_event_counts
+from api.db import player_exists, team_exists
+from processing.metrics import rolling_avg_rating, player_event_counts, team_form
 
 app = FastAPI()
 
@@ -24,6 +24,14 @@ class PlayerStats(BaseModel):
 class CompareResponse(BaseModel):
     window: int
     players: list[PlayerStats]
+
+class TeamTrendsResponse(BaseModel):
+    team: str
+    window: int
+    avg_goals_for: float | None
+    avg_goals_against: float | None
+    points: int
+    form: str
 
 
 # ---------- Endpoints ----------
@@ -63,3 +71,12 @@ async def get_performance(id: int, window: int = 5):
 
     avg = await rolling_avg_rating(id, window)
     return PerformanceResponse(player_id=id, window=window, average_rating=avg)
+
+
+@app.get("/teams/{team}/trends", response_model=TeamTrendsResponse)
+async def get_team_trends(team: str, window: int = 5):
+    if not await team_exists(team):
+        raise HTTPException(status_code=404, detail=f"Team {team} not found")
+
+    stats = await team_form(team, window)
+    return TeamTrendsResponse(team=team, window=window, **stats)

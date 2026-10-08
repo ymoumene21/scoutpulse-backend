@@ -3,6 +3,7 @@ import asyncpg
 
 # Matches the credentials we set in docker-compose.yml.
 DATABASE_URL = "postgresql://scoutpulse:scoutpulse_dev@localhost:5433/scoutpulse"
+
 _pool: asyncpg.Pool | None = None  # created once, reused for the app's lifetime
 
 
@@ -36,4 +37,12 @@ async def get_player_events(player_id: int):
 async def player_exists(player_id: int) -> bool:
     pool = await get_pool()
     row = await pool.fetchrow("SELECT 1 FROM players WHERE id = $1", player_id)
+    return row is not None
+
+async def team_exists(team: str) -> bool:
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        "SELECT 1 FROM matches WHERE home_team = $1 OR away_team = $1 LIMIT 1",
+        team,
+    )
     return row is not None
