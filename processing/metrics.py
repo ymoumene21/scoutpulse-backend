@@ -44,42 +44,25 @@ async def fetch_events_df() -> pl.DataFrame:
     return pl.DataFrame([dict(row) for row in rows])
 
 
-async def rolling_avg_rating(player_id: int, window: int = 5) -> float | None:
-    """
-    Average of a player's most recent `window` rating events.
-    Mirrors the /players/{id}/performance?window= endpoint from Day 5.
-    """
-    df = await fetch_events_df()
-
+def rolling_avg_rating(df: pl.DataFrame, player_id: int, window: int = 5) -> float | None:
     ratings = (
         df
-        .filter(
-            (pl.col("player_id") == player_id) &
-            (pl.col("event_type") == "rating")
-        )
+        .filter((pl.col("player_id") == player_id) & (pl.col("event_type") == "rating"))
         .sort("match_date")
         .tail(window)
     )
-
     if ratings.is_empty():
         return None
-
     return ratings["event_value"].mean()
 
 
-async def player_event_counts(player_id: int) -> dict[str, int]:
-    """
-    Counts every event type a player has recorded (goals, assists, cards, etc.).
-    """
-    df = await fetch_events_df()
-
+def player_event_counts(df: pl.DataFrame, player_id: int) -> dict[str, int]:
     counts = (
         df
         .filter(pl.col("player_id") == player_id)
         .group_by("event_type")
         .agg(pl.len().alias("count"))
     )
-
     return dict(zip(counts["event_type"], counts["count"]))
 
 
@@ -121,15 +104,8 @@ async def fetch_team_matches_df(team: str) -> pl.DataFrame:
 
     return pl.DataFrame([dict(row) for row in rows])
 
-async def team_form(team: str, window: int = 5) -> dict:
-    """
-    A team's recent form over its last `window` matches:
-    average goals for/against, total points, and a form string like "WWDLW".
-    """
-    df = await fetch_team_matches_df(team)
-
+def team_form(df: pl.DataFrame, window: int = 5) -> dict:
     recent = df.sort("match_date").tail(window)
-
     return {
         "avg_goals_for": recent["goals_for"].mean(),
         "avg_goals_against": recent["goals_against"].mean(),

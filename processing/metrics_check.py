@@ -1,9 +1,9 @@
 import asyncio
 from processing.metrics import (
     fetch_events_df,
+    fetch_team_matches_df,
     rolling_avg_rating,
     player_event_counts,
-    fetch_team_matches_df,
     team_form,
 )
 
@@ -11,19 +11,14 @@ from processing.metrics import (
 async def main():
     df = await fetch_events_df()
     print(df)
-    print(df.schema)
 
-    avg = await rolling_avg_rating(player_id=1, window=5)  # Haaland
-    print("Haaland rolling avg rating:", avg)
+    print("Haaland rolling avg rating:", rolling_avg_rating(df, 1, 5))
+    print("Haaland event counts:", player_event_counts(df, 1))
 
-    counts = await player_event_counts(player_id=1)  # Haaland
-    print("Haaland event counts:", counts)
-
-    team_df = await fetch_team_matches_df("Arsenal")
-    print(team_df)
-
-    print("Arsenal form (last 5):", await team_form("Arsenal", 5))
-    print("Arsenal form (last 10):", await team_form("Arsenal", 10))
+    arsenal = await fetch_team_matches_df("Arsenal")
+    print(arsenal)
+    print("Arsenal form (last 5):", team_form(arsenal, 5))
+    print("Arsenal form (last 10):", team_form(arsenal, 10))
 
 
 if __name__ == "__main__":
