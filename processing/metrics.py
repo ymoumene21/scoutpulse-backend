@@ -120,3 +120,19 @@ async def fetch_team_matches_df(team: str) -> pl.DataFrame:
         )
 
     return pl.DataFrame([dict(row) for row in rows])
+
+async def team_form(team: str, window: int = 5) -> dict:
+    """
+    A team's recent form over its last `window` matches:
+    average goals for/against, total points, and a form string like "WWDLW".
+    """
+    df = await fetch_team_matches_df(team)
+
+    recent = df.sort("match_date").tail(window)
+
+    return {
+        "avg_goals_for": recent["goals_for"].mean(),
+        "avg_goals_against": recent["goals_against"].mean(),
+        "points": recent["points"].sum(),
+        "form": "".join(recent["result"].to_list()),
+    }

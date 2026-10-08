@@ -2,8 +2,7 @@
 import asyncpg
 
 # Matches the credentials we set in docker-compose.yml.
-DATABASE_URL = "postgresql://scoutpulse:scoutpulse_dev@localhost:5432/scoutpulse"
-
+DATABASE_URL = "postgresql://scoutpulse:scoutpulse_dev@localhost:5433/scoutpulse"
 _pool: asyncpg.Pool | None = None  # created once, reused for the app's lifetime
 
 
